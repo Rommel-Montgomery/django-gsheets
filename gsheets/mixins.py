@@ -27,6 +27,8 @@ class BaseGoogleSheetMixin(object):
     max_rows = 30000
     # max column to support in the sheet
     max_col = 'Z'
+    # Fields to include in report
+    gsheets_fields = []
 
 
 class SheetPushableMixin(BaseGoogleSheetMixin):
@@ -45,8 +47,7 @@ class SheetPushableMixin(BaseGoogleSheetMixin):
 
     @classmethod
     def get_sheet_push_fields(cls):
-        return [f.name for f in cls._meta.fields]
-
+        return cls.gsheets_fields or [f.name for f in cls._meta.fields]
 
 class SheetPullableMixin(BaseGoogleSheetMixin):
     """ mixes in functionality to pull data from a google sheet and use that data to keep model data updated. Notes:

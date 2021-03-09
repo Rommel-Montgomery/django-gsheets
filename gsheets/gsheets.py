@@ -1,3 +1,6 @@
+import datetime
+import decimal
+from django.db.models import ForeignKey
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from django.core.exceptions import ObjectDoesNotExist
@@ -64,7 +67,7 @@ class BaseSheetInterface(object):
         if self._api is not None:
             return self._api
 
-        self._api = build('sheets', 'v4', credentials=self.credentials)
+        self._api = build('sheets', 'v4', credentials=self.credentials, static_discovery=False)
         return self._api
 
     @property
@@ -236,7 +239,20 @@ class SheetPushInterface(BaseSheetInterface):
                 self.writeout_batch([writeout_range], [writeout_data])
                 last_writeout = i
 
-            push_data = {f: getattr(obj, f) for f in self.push_fields}
+            push_data = dict()
+            for f in self.push_fields:
+                attr = getattr(obj, f)
+                if isinstance(attr, ForeignKey):
+                    data = attr.__str__()
+                elif type(attr) == datetime.date:
+                    data = attr.strftime('%d/%m/%Y')
+                elif type(attr) == datetime.datetime:
+                    data = attr.strftime('%d/%m/%Y %H:%M')
+                elif type(attr) == decimal.Decimal:
+                    data = float(attr)
+                else:
+                    data = attr
+                push_data['f'] = attr
             self.upsert_sheet_data(**push_data)
 
         # writeout any remaining data
